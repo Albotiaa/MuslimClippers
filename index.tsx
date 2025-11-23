@@ -645,7 +645,6 @@ const App = () => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('action') === 'unlock_guide') {
       setIsGuideUnlocked(true);
-      // Optionally clean up URL to prevent re-unlock on refresh if desired
     }
 
     return () => window.removeEventListener('scroll', handleScroll);
@@ -1357,8 +1356,13 @@ const StrategyGuide = ({ onClose }: { onClose: () => void }) => {
     return (
         <div className="print-container h-full overflow-y-auto custom-scrollbar p-8 relative bg-white">
             <div className="absolute top-0 right-0 p-4 z-10 flex gap-2 no-print">
-                 <button onClick={handlePrint} className="p-2 hover:bg-[#F4F2ED] rounded-full interactive transition-colors group" title="Download PDF">
-                    <Download className="w-6 h-6 group-hover:text-accent" />
+                 <button 
+                    onClick={handlePrint} 
+                    className="flex items-center gap-2 px-4 py-2 bg-[#F4F2ED] hover:bg-accent hover:text-white rounded-full interactive transition-all group font-mono text-xs uppercase tracking-widest" 
+                    title="Download PDF"
+                 >
+                    <Download className="w-4 h-4" />
+                    <span className="hidden md:inline">Download PDF</span>
                 </button>
                 <button onClick={onClose} className="p-2 hover:bg-[#F4F2ED] rounded-full interactive transition-colors group">
                     <X className="w-6 h-6 group-hover:text-red-500" />
@@ -1516,17 +1520,22 @@ const StrategyTeaser = ({ onUnlock }: { onUnlock: () => void }) => {
 const LowBudgetFlow = () => {
 
   const handleUnlock = () => {
-    if (typeof window !== 'undefined') {
-        // Secure Redirect Logic to Whop
-        // We construct a redirect URL that brings the user back to this page with the 'action=unlock_guide' param
-        const currentUrl = new URL(window.location.href);
-        currentUrl.searchParams.set('action', 'unlock_guide');
-        
-        const redirectUrl = encodeURIComponent(currentUrl.toString());
-        const checkoutUrl = `https://whop.com/checkout/${WHOP_PRODUCT_ID}?redirect_url=${redirectUrl}`;
-        
-        window.location.href = checkoutUrl;
-    }
+    // 1. Get Base URL (e.g. https://yourdomain.com)
+    // We use window.location.origin + window.location.pathname to ensure we stay on the same page
+    const baseUrl = window.location.origin + window.location.pathname;
+    
+    // 2. Create Return URL
+    // We append ?action=unlock_guide so when they return, the app knows to open the guide
+    const returnUrl = new URL(baseUrl);
+    returnUrl.searchParams.set('action', 'unlock_guide');
+
+    // 3. Construct Whop Checkout URL
+    // Docs: https://whop.com/checkout/<PRODUCT_ID>?redirect_url=<URL>
+    const cleanId = WHOP_PRODUCT_ID.trim();
+    const finalCheckoutUrl = `https://whop.com/checkout/${cleanId}?redirect_url=${encodeURIComponent(returnUrl.toString())}`;
+
+    // 4. Redirect
+    window.location.href = finalCheckoutUrl;
   };
 
   return (
